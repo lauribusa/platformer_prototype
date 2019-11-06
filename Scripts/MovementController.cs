@@ -10,47 +10,121 @@ public class MovementController : MonoBehaviour
 	public int horizontalRayCount;
 	public int verticalRayCount;
 	public LayerMask _layerMask;
+	public LayerMask layerOneWayPlatform;
+	public Collisions _collisions;
+
+	public float _pixelPerUnit = 55f;
+	float skinWidth;
 
 	float verticalRaySpacing;
-    // Start is called before the first frame update
-    void Start()
-    {
+	float horizontalRaySpacing;
+
+	public struct Collisions
+	{
+		public bool top, bottom, left, right;
+		public void Reset()
+		{
+			top = bottom = left = right = false;
+		}
+	}
+	// Start is called before the first frame update
+	void Start()
+	{
+		skinWidth = 1 / 55f;
 		boxCollider = GetComponent<BoxCollider2D>();
-		verticalRaySpacing = boxCollider.bounds.size.y / (verticalRayCount - 1);
-    }
+		Bounds bounds = boxCollider.bounds;
+		bounds.Expand(skinWidth * -2f);
+		verticalRaySpacing = bounds.size.y / (verticalRayCount - 1);
+		horizontalRaySpacing = bounds.size.x / (horizontalRayCount - 1);
+	}
 
 	void ComputeBounds()
 	{
-		bottomLeft = new Vector2(boxCollider.bounds.min.x, boxCollider.bounds.min.y);
-		bottomRight = new Vector2(boxCollider.bounds.max.x, boxCollider.bounds.min.y);
-		topLeft = new Vector2(boxCollider.bounds.min.x, boxCollider.bounds.max.y);
-		topRight = new Vector2(boxCollider.bounds.max.x, boxCollider.bounds.max.y);
+		Bounds bounds = boxCollider.bounds;
+		bounds.Expand(skinWidth * -2f);
+		bottomLeft = new Vector2(bounds.min.x, bounds.min.y);
+		bottomRight = new Vector2(bounds.max.x, bounds.min.y);
+		topLeft = new Vector2(bounds.min.x, bounds.max.y);
+		topRight = new Vector2(bounds.max.x, bounds.max.y);
 	}
-    // Update is called once per frame
+	// Update is called once per frame
 
 	public void Move(Vector2 velocity)
 	{
+		_collisions.Reset();
 		ComputeBounds();
-		HorizontalMove(ref velocity);
+		if(velocity.x != 0)
+		{
+			HorizontalMove(ref velocity);
+
+		}
+		if(velocity.y != 0)
+		{
+			VerticalMove(ref velocity);
+
+		}
 		transform.Translate(velocity);
 	}
+	public void VerticalMove(ref Vector2 velocity)
+	{
+		float direction = Mathf.Sign(velocity.y);
+		float distance = Mathf.Abs(velocity.y)+skinWidth;
 
+		Vector2 baseOrigin = direction == 1 ? topLeft : bottomLeft;
+		for (int i = 0; i < horizontalRayCount; i++)
+		{
+			Vector2 origin = baseOrigin + new Vector2(horizontalRaySpacing * i, 0);
+			Debug.DrawLine(origin, origin + new Vector2(0, direction * distance));
+			
+			RaycastHit2D hit = Physics2D.Raycast(origin, new Vector2(0, direction), distance, _layerMask);
+			if (hit)
+			{
+
+				/*print(hit.transform.gameObject.layer);
+				print(layerOneWayPlatform);*/
+				print("touched: "+hit.transform.gameObject.tag);
+				if(!(hit.transform.gameObject.tag == "oneWayPlatform" && direction > 0))
+				{
+					velocity.y = (hit.distance - skinWidth) * direction;
+					distance = hit.distance - skinWidth;
+					
+					if (direction < 0)
+					{
+						_collisions.bottom = true;
+					}
+					if (direction > 0)
+					{
+						_collisions.top = true;
+					}
+				}
+				
+			}
+		}
+	}
 	public void HorizontalMove(ref Vector2 velocity)
 	{
-		float direction = Mathf.Sin(velocity.x);
-		float distance = Mathf.Abs(velocity.x);
-			for (int i = 0; i < verticalRayCount; i++)
+		float direction = Mathf.Sign(velocity.x);
+		float distance = Mathf.Abs(velocity.x)+skinWidth;
+		for (int i = 0; i < verticalRayCount; i++)
+		{
+			Vector2 baseOrigin = direction == 1 ? bottomRight : bottomLeft;
+			Vector2 origin = baseOrigin + new Vector2(0, verticalRaySpacing * i);
+			Debug.DrawLine(origin, origin + new Vector2(direction * distance, 0));
+			RaycastHit2D hit = Physics2D.Raycast(origin, new Vector2(direction, 0), distance, _layerMask);
+			if (hit)
 			{
-			Vector2 baseOrigin = direction == 1 ? bottomRight : bottomLeft; 
-				Vector2 origin = bottomRight + new Vector2(0, verticalRaySpacing * i);
-				Debug.DrawLine(origin, origin + new Vector2(velocity.x, 0));
-				RaycastHit2D hit = Physics2D.Raycast(origin, Vector2.right, velocity.x, _layerMask);
-				if (hit)
+				velocity.x = (hit.distance - skinWidth) * direction;
+				if(direction < 0)
 				{
-				velocity.x = hit.distance * direction;
-					Debug.Log(hit.point);
+					_collisions.left = true;
+				} else
+				if(direction > 0)
+				{
+					_collisions.right = true;
 				}
+				
 			}
+		}
 	}
 
 }
