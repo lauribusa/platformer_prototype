@@ -20,13 +20,16 @@ public class Player : MonoBehaviour
 	public float brakeForce;
 	
 	public float maxSpeed;
-
+	int horizontal = 0;
 	float gravity;
 	float minSpeedThreshold;
 	float _jumpForce;
 
+	Animator anim;
+
 	Vector2 _velocity;
 	MovementController mc;
+	SpriteRenderer sr;
 
 	public int jumpCount = 1;
 	int availableAirJumps;
@@ -34,6 +37,8 @@ public class Player : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+		anim = GetComponent<Animator>();
+		sr = GetComponent<SpriteRenderer>();
 		availableAirJumps = jumpCount;
 		if(brakeForce >= 0)
 		{
@@ -60,7 +65,10 @@ public class Player : MonoBehaviour
 			_velocity.y = 0;
 		}
 		AirJumpUpdate();
-		int horizontal = 0;
+
+		
+
+		
 		if (mc._collisions.bottom || _airControlActivated)
 		{
 			horizontal = 0;
@@ -121,14 +129,28 @@ public class Player : MonoBehaviour
 
 		}
 		
-		
-		
+		anim.SetFloat("speed", _velocity.x);
+
+		if (_velocity.x < 0f)
+		{
+			sr.flipX = true;
+		}
+		else
+		if (_velocity.x >= 0)
+		{
+			sr.flipX = false;
+		}
+
+
+		//anim.SetTrigger("jump");
+
+
 		/*if (Input.GetKey(KeyCode.Z))
 		{
 			vertical = 1;
 		}*/
-	
-		
+
+
 		_velocity.y += gravity * Time.deltaTime;
 
 		mc.Move(_velocity * Time.deltaTime);
@@ -136,6 +158,7 @@ public class Player : MonoBehaviour
 	void Jump()
 	{ 
 		_velocity.y = _jumpForce;
+		anim.SetTrigger("jump");
 	}
 
 	void AirJumpUpdate()
@@ -144,10 +167,30 @@ public class Player : MonoBehaviour
 		{
 			availableAirJumps = jumpCount;
 		}
+		
 		if (Input.GetKeyDown(KeyCode.Space) && availableAirJumps > 0)
 		{
-			Jump();
-			availableAirJumps--;
+			if ((!mc._collisions.bottom))
+			{
+				
+				if (mc._collisions.left)
+				{
+					_velocity.x = maxSpeed;
+					Jump();
+				}
+				if (mc._collisions.right)
+				{
+					_velocity.x = -(maxSpeed);
+					Jump();
+				}
+				
+				//availableAirJumps--;
+			} else
+			{
+				Jump();
+				availableAirJumps--;
+
+			}
 		}
 	}
 }
