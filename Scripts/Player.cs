@@ -1,9 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
+[RequireComponent(typeof(AnimationTimes))]
 [RequireComponent(typeof(MovementController))]
 public class Player : MonoBehaviour
 {
+	delegate void MyDelegate();
+	MyDelegate UpdateAnimation;
+
 	[Tooltip("Alors, toujours pédé?")]
 	public int _speed = 1;
 	[Tooltip("Max jump height")]
@@ -30,9 +35,12 @@ public class Player : MonoBehaviour
 	Vector2 _velocity;
 	MovementController mc;
 	SpriteRenderer sr;
+	AnimationTimes at;
 
 	public int jumpCount = 1;
 	int availableAirJumps;
+
+	bool freeze;
 
     // Start is called before the first frame update
     void Start()
@@ -73,12 +81,12 @@ public class Player : MonoBehaviour
 		{
 			horizontal = 0;
 
-			if (Input.GetKey(KeyCode.Q))
+			if (Input.GetKey(KeyCode.Q) && !freeze)
 			{
 				horizontal += -1;
 			}
 
-			if (Input.GetKey(KeyCode.D))
+			if (Input.GetKey(KeyCode.D) && !freeze)
 			{
 				horizontal += 1;
 			}
@@ -161,6 +169,18 @@ public class Player : MonoBehaviour
 		anim.SetTrigger("jump");
 	}
 
+	void HorizontalControlUpdate()
+	{
+		if ((_velocity.x > 0 && mc._collisions.right) ||
+			(_velocity.x < 0 && mc._collisions.left))
+		{
+			_velocity.x = 0;
+		}
+	}
+	void VerticalControlUpdate()
+	{
+
+	}
 	void AirJumpUpdate()
 	{
 		if (mc._collisions.bottom)

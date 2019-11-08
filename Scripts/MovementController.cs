@@ -9,12 +9,14 @@ public class MovementController : MonoBehaviour
 
 	public int horizontalRayCount;
 	public int verticalRayCount;
+
 	public LayerMask _layerMask;
 	public LayerMask layerOneWayPlatform;
 	public Collisions _collisions;
 
 	public float _pixelPerUnit = 55f;
 	float skinWidth;
+	float pitDistance;
 
 	float verticalRaySpacing;
 	float horizontalRaySpacing;
@@ -22,15 +24,19 @@ public class MovementController : MonoBehaviour
 	public struct Collisions
 	{
 		public bool top, bottom, left, right;
+
+		public bool frontPit;
 		public void Reset()
 		{
 			top = bottom = left = right = false;
+			frontPit = false;
 		}
 	}
 	// Start is called before the first frame update
 	void Start()
 	{
 		skinWidth = 1 / 55f;
+		pitDistance = 0.5f;
 		boxCollider = GetComponent<BoxCollider2D>();
 		Bounds bounds = boxCollider.bounds;
 		bounds.Expand(skinWidth * -2f);
@@ -61,8 +67,8 @@ public class MovementController : MonoBehaviour
 		if(velocity.y != 0)
 		{
 			VerticalMove(ref velocity);
-
 		}
+		DetectFrontPit(velocity);
 		transform.Translate(velocity);
 	}
 	public void VerticalMove(ref Vector2 velocity)
@@ -126,5 +132,21 @@ public class MovementController : MonoBehaviour
 			}
 		}
 	}
+	void DetectFrontPit(Vector2 velocity)
+	{
+		Vector2 origin = velocity.x > 0 ? bottomRight : bottomLeft;
 
+		//Debug.DrawLine(origin, origin + Vector2.down * pitDistance);
+		RaycastHit2D hit = Physics2D.Raycast(
+			origin,
+			Vector2.down,
+			pitDistance,
+			_layerMask
+			);
+
+		if (!hit)
+		{
+			_collisions.frontPit = true;
+		}
+	}
 }
